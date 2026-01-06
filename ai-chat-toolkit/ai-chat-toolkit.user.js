@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name        快樂工具人聊天小幫手
-// @name:en     Happy Toolman Chat Helper
+// @name:en     AI Chat Toolkit
 // @description AI 對話匯出與快捷指令工具箱
 // @description:en Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
 // @namespace   happy-toolman
-// @version     2025-01-06.011
+// @version     2025-01-06.030
 // @author      快樂工具人(Haoming Lu)
 // @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
@@ -27,9 +27,9 @@
 (function() {
 'use strict';
 
-const VERSION = '2025-01-06.011';
+const VERSION = '2025-01-06.030';
 
-// ========== Trusted Types Policy (for Gemini) ==========
+// Trusted Types Policy
 let trustedPolicy = null;
 if (typeof trustedTypes !== 'undefined' && trustedTypes.createPolicy) {
   try {
@@ -51,7 +51,44 @@ const safeParseHTML = (html) => {
   return parser.parseFromString(html, 'text/html');
 };
 
-// ========== Platform Detection ==========
+// i18n
+const i18n = {
+  lang: null,
+  detect() {
+    if (this.lang) return this.lang;
+    this.lang = (navigator.language || navigator.userLanguage).startsWith('zh') ? 'zh' : 'en';
+    return this.lang;
+  },
+  t(key) {
+    const texts = {
+      'menu.title': { zh: '快樂工具人聊天小幫手', en: 'AI Chat Toolkit' },
+      'menu.export': { zh: '匯出對話', en: 'Export Chat' },
+      'menu.actions': { zh: '快捷指令', en: 'Quick Actions' },
+      'menu.edit': { zh: '⚙️ 編輯指令', en: '⚙️ Edit Actions' },
+      'editor.title': { zh: '編輯快捷指令', en: 'Edit Quick Actions' },
+      'editor.hint': { zh: '格式：icon | 名稱 | 指令內容（每行一個）', en: 'Format: icon | name | prompt (one per line)' },
+      'editor.reset': { zh: '重設預設', en: 'Reset' },
+      'editor.save': { zh: '儲存', en: 'Save' },
+      'action.summary': { zh: '摘要對話', en: 'Summary' },
+      'action.summary.prompt': { zh: '請用一句話摘要上面的對話紀錄', en: 'Please summarize the conversation above in one sentence' },
+      'action.translate': { zh: '翻譯中文', en: 'Translate' },
+      'action.translate.prompt': { zh: '請將上面的回覆翻譯成繁體中文', en: 'Please translate the above response to English' },
+      'action.simplify': { zh: '精簡回答', en: 'Simplify' },
+      'action.simplify.prompt': { zh: '請用更簡短的方式重新回答', en: 'Please answer more concisely' },
+      'action.explain': { zh: '詳細解釋', en: 'Explain' },
+      'action.explain.prompt': { zh: '請更詳細地解釋上面的回答', en: 'Please explain the above answer in more detail' },
+      'action.continue': { zh: '繼續', en: 'Continue' },
+      'action.continue.prompt': { zh: '好，繼續', en: 'OK, continue' },
+      'action.no': { zh: '不', en: 'No' },
+      'action.no.prompt': { zh: '不用', en: 'No thanks' },
+      'alert.unsupported': { zh: '不支援此平台', en: 'Platform not supported' },
+      'alert.no_content': { zh: '找不到對話內容', en: 'No conversation found' }
+    };
+    return texts[key]?.[this.lang] || key;
+  }
+};
+
+// Platform
 const Platform = {
   detect() {
     const host = location.hostname;
@@ -63,64 +100,26 @@ const Platform = {
   },
 
   getSelectors(platform) {
-    const selectors = {
-      chatgpt: {
-        messages: 'div[data-message-id]',
-        user: '[data-message-author-role="user"]',
-        assistant: '[data-message-author-role="assistant"]',
-        title: '#history a[data-active]',
-        codeBlock: 'pre',
-        codeLang: 'div > div:first-child',
-        codeContent: 'div > div:nth-child(3) > code, code',
-        inputBox: 'div[contenteditable="true"], textarea#prompt-textarea'
-      },
-      grok: {
-        messages: 'div.message-bubble',
-        user: null,
-        assistant: null,
-        title: null,
-        codeBlock: 'div.not-prose',
-        codeLang: 'div > div > span',
-        codeContent: 'div > div:nth-child(3) > code, code',
-        inputBox: 'textarea'
-      },
-      gemini: {
-        messages: 'user-query-content, model-response',
-        user: 'user-query-content',
-        assistant: 'model-response',
-        title: 'conversations-list div.selected',
-        codeBlock: 'code-block',
-        codeLang: 'div > div > span',
-        codeContent: 'div > div:nth-child(2) > div > pre, pre',
-        inputBox: 'rich-textarea div[contenteditable="true"], textarea'
-      },
-      claude: {
-        messages: '[data-testid="user-human-turn"], [data-testid="assistant-turn"], div.font-user-message, div.font-claude-message',
-        user: '[data-testid="user-human-turn"], div.font-user-message',
-        assistant: '[data-testid="assistant-turn"], div.font-claude-message',
-        title: null,
-        codeBlock: 'pre',
-        codeLang: '.text-text-300, [class*="language-"]',
-        codeContent: 'code',
-        inputBox: 'div[contenteditable="true"].ProseMirror, div[contenteditable="true"]'
-      }
+    const s = {
+      chatgpt: { messages: 'div[data-message-id]', user: '[data-message-author-role="user"]', assistant: '[data-message-author-role="assistant"]', title: '#history a[data-active]', codeBlock: 'pre', codeLang: 'div > div:first-child', codeContent: 'div > div:nth-child(3) > code, code', inputBox: 'div[contenteditable="true"], textarea#prompt-textarea' },
+      grok: { messages: 'div.message-bubble', user: null, assistant: null, title: null, codeBlock: 'div.not-prose', codeLang: 'div > div > span', codeContent: 'div > div:nth-child(3) > code, code', inputBox: 'textarea' },
+      gemini: { messages: 'user-query-content, model-response', user: 'user-query-content', assistant: 'model-response', title: 'conversations-list div.selected', codeBlock: 'code-block', codeLang: 'div > div > span', codeContent: 'div > div:nth-child(2) > div > pre, pre', inputBox: 'rich-textarea div[contenteditable="true"], textarea' },
+      claude: { messages: '[data-testid="user-human-turn"], [data-testid="assistant-turn"], div.font-user-message, div.font-claude-message', user: '[data-testid="user-human-turn"], div.font-user-message', assistant: '[data-testid="assistant-turn"], div.font-claude-message', title: null, codeBlock: 'pre', codeLang: '.text-text-300, [class*="language-"]', codeContent: 'code', inputBox: 'div[contenteditable="true"].ProseMirror, div[contenteditable="true"]' }
     };
-    return selectors[platform] || null;
+    return s[platform] || null;
   },
 
   getModelName(platform) {
-    const models = { chatgpt: 'ChatGPT', grok: 'Grok', gemini: 'Gemini', claude: 'Claude' };
-    return models[platform] || 'Unknown';
+    return { chatgpt: 'ChatGPT', grok: 'Grok', gemini: 'Gemini', claude: 'Claude' }[platform] || 'Unknown';
   }
 };
 
-// ========== HTML to Markdown Converter ==========
+// Converter
 const Converter = {
   toMarkdown(html, platform) {
     const doc = safeParseHTML(html);
     
     doc.querySelectorAll('span.katex-html, mrow').forEach(el => el.remove());
-    
     doc.querySelectorAll('annotation[encoding="application/x-tex"]').forEach(el => {
       const tex = el.textContent.trim();
       const isBlock = el.closest('.katex-display');
@@ -130,19 +129,20 @@ const Converter = {
     const sel = Platform.getSelectors(platform);
     if (sel) {
       doc.querySelectorAll(sel.codeBlock).forEach(pre => {
-        const langEl = pre.querySelector(sel.codeLang);
-        const codeEl = pre.querySelector(sel.codeContent);
-        const lang = langEl?.textContent?.trim().toLowerCase() || '';
-        const code = codeEl?.textContent || pre.textContent;
+        const lang = pre.querySelector(sel.codeLang)?.textContent?.trim().toLowerCase() || '';
+        const code = pre.querySelector(sel.codeContent)?.textContent || pre.textContent;
         pre.textContent = `\n\`\`\`${lang}\n${code}\n\`\`\`\n`;
       });
     }
 
-    doc.querySelectorAll('strong, b').forEach(el => el.replaceWith(`**${el.textContent}**`));
-    doc.querySelectorAll('em, i').forEach(el => el.replaceWith(`*${el.textContent}*`));
-    doc.querySelectorAll('p code, span code').forEach(el => el.replaceWith(`\`${el.textContent}\``));
-    doc.querySelectorAll('a').forEach(el => el.replaceWith(`[${el.textContent}](${el.href})`));
-    doc.querySelectorAll('img').forEach(el => el.replaceWith(`![${el.alt || ''}](${el.src})`));
+    const rules = [
+      ['strong, b', el => `**${el.textContent}**`],
+      ['em, i', el => `*${el.textContent}*`],
+      ['p code, span code', el => `\`${el.textContent}\``],
+      ['a', el => `[${el.textContent}](${el.href})`],
+      ['img', el => `![${el.alt || ''}](${el.src})`]
+    ];
+    rules.forEach(([sel, fn]) => doc.querySelectorAll(sel).forEach(el => el.replaceWith(fn(el))));
 
     doc.querySelectorAll('ul').forEach(ul => {
       let md = '\n';
@@ -181,7 +181,7 @@ const Converter = {
   }
 };
 
-// ========== Chat Extractor ==========
+// Extractor
 const Extractor = {
   getMessages(platform) {
     const sel = Platform.getSelectors(platform);
@@ -233,7 +233,7 @@ const Extractor = {
   }
 };
 
-// ========== Formatters ==========
+// Formatters
 const Formatter = {
   markdown(messages, metadata, platform) {
     let md = `---
@@ -297,7 +297,7 @@ exporter_version: ${metadata.exporterVersion}
   }
 };
 
-// ========== Downloader ==========
+// Downloader
 const Downloader = {
   save(content, filename, mimeType) {
     const blob = new Blob([content], { type: mimeType });
@@ -310,13 +310,14 @@ const Downloader = {
   sanitize: name => (name.replace(/[\/\\?%*:|"<>]/g, '_').trim().slice(0, 100) || 'chat')
 };
 
-// ========== Quick Actions ==========
+// Quick Actions
 const defaultActions = [
-  { id: 'summary', icon: '📋', label: '摘要對話', prompt: '請用一句話摘要上面的對話紀錄' },
-  { id: 'continue', icon: '➡️', label: '繼續', prompt: '請繼續' },
-  { id: 'translate', icon: '🌐', label: '翻譯中文', prompt: '請將上面的回覆翻譯成繁體中文' },
-  { id: 'simplify', icon: '✂️', label: '精簡回答', prompt: '請用更簡短的方式重新回答' },
-  { id: 'explain', icon: '💡', label: '詳細解釋', prompt: '請更詳細地解釋上面的回答' }
+  { id: 'summary', icon: '📋', label: i18n.t('action.summary'), prompt: i18n.t('action.summary.prompt') },
+  { id: 'translate', icon: '🌐', label: i18n.t('action.translate'), prompt: i18n.t('action.translate.prompt') },
+  { id: 'simplify', icon: '✂️', label: i18n.t('action.simplify'), prompt: i18n.t('action.simplify.prompt') },
+  { id: 'explain', icon: '💡', label: i18n.t('action.explain'), prompt: i18n.t('action.explain.prompt') },
+  { id: 'continue', icon: '⭕', label: i18n.t('action.continue'), prompt: i18n.t('action.continue.prompt') },
+  { id: 'no', icon: '❌', label: i18n.t('action.no'), prompt: i18n.t('action.no.prompt') }
 ];
 
 const QuickAction = {
@@ -371,67 +372,55 @@ const QuickAction = {
 
   showEditor() {
     const actions = this.getActions();
-    const defaultActions = [
-      { icon: '📋', label: '摘要對話', prompt: '請用一句話摘要上面的對話紀錄' },
-      { icon: '✏️', label: '編輯', prompt: '請編輯' },
-      { icon: '🌐', label: '翻譯中文', prompt: '請將上面的回覆翻譯成繁體中文' },
-      { icon: '✂️', label: '精簡回答', prompt: '請用更簡短的方式重新回答' },
-      { icon: '💡', label: '詳細解釋', prompt: '請更詳細地解釋上面的回答' }
+    const editorDefaultActions = [
+      { icon: '📋', label: i18n.t('action.summary'), prompt: i18n.t('action.summary.prompt') },
+      { icon: '🌐', label: i18n.t('action.translate'), prompt: i18n.t('action.translate.prompt') },
+      { icon: '✂️', label: i18n.t('action.simplify'), prompt: i18n.t('action.simplify.prompt') },
+      { icon: '💡', label: i18n.t('action.explain'), prompt: i18n.t('action.explain.prompt') },
+      { icon: '⭕', label: i18n.t('action.continue'), prompt: i18n.t('action.continue.prompt') },
+      { icon: '❌', label: i18n.t('action.no'), prompt: i18n.t('action.no.prompt') }
     ];
 
-    // Overlay with !important to override any platform styles
     const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed!important;inset:0!important;background:rgba(0,0,0,0.6)!important;z-index:999999999!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:20px!important;box-sizing:border-box!important;';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999999999;display:flex;align-items:center;justify-content:center;padding:20px;';
     
-    // Editor container
     const editor = document.createElement('div');
-    editor.style.cssText = 'background:#fff!important;border-radius:12px!important;width:100%!important;max-width:600px!important;max-height:80vh!important;overflow:auto!important;box-shadow:0 8px 32px rgba(0,0,0,0.3)!important;position:relative!important;';
+    editor.style.cssText = 'background:#fff;border-radius:12px;width:100%;max-width:600px;max-height:80vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
 
-    // Header
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex!important;justify-content:space-between!important;align-items:center!important;padding:20px!important;border-bottom:1px solid #eee!important;font-weight:600!important;font-size:16px!important;position:sticky!important;top:0!important;background:#fff!important;z-index:1!important;color:#333!important;';
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #eee;font-weight:600;font-size:16px;color:#333;';
     
     const headerTitle = document.createElement('span');
-    headerTitle.textContent = '編輯快捷指令';
-    headerTitle.style.cssText = 'color:#333!important;';
+    headerTitle.textContent = i18n.t('editor.title');
     
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
-    closeBtn.style.cssText = 'background:none!important;border:none!important;font-size:24px!important;cursor:pointer!important;color:#999!important;padding:0!important;width:30px!important;height:30px!important;line-height:1!important;';
-    closeBtn.onmouseover = () => closeBtn.style.color = '#333';
-    closeBtn.onmouseout = () => closeBtn.style.color = '#999';
+    closeBtn.style.cssText = 'background:none;border:none;font-size:24px;cursor:pointer;color:#999;padding:0;width:30px;height:30px;';
     
     header.appendChild(headerTitle);
     header.appendChild(closeBtn);
     editor.appendChild(header);
 
-    // Hint
     const hint = document.createElement('div');
-    hint.style.cssText = 'padding:16px 20px!important;font-size:13px!important;color:#666!important;background:#f8f9fa!important;';
-    hint.textContent = '格式：icon | 名稱 | 指令內容（每行一個）';
+    hint.style.cssText = 'padding:16px 20px;font-size:13px;color:#666;background:#f8f9fa;';
+    hint.textContent = i18n.t('editor.hint');
     editor.appendChild(hint);
 
-    // Textarea
     const textarea = document.createElement('textarea');
-    textarea.style.cssText = 'display:block!important;width:calc(100% - 40px)!important;margin:16px 20px!important;min-height:300px!important;border:1px solid #ddd!important;border-radius:8px!important;padding:12px!important;font-size:14px!important;resize:vertical!important;font-family:monospace!important;line-height:1.6!important;color:#333!important;background:#fff!important;box-sizing:border-box!important;';
+    textarea.style.cssText = 'display:block;width:calc(100% - 40px);margin:16px 20px;min-height:300px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:monospace;line-height:1.6;color:#333;background:#fff;box-sizing:border-box;';
     textarea.value = actions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n');
     editor.appendChild(textarea);
 
-    // Buttons
     const buttons = document.createElement('div');
-    buttons.style.cssText = 'display:flex!important;justify-content:flex-end!important;gap:10px!important;padding:0 20px 20px!important;position:sticky!important;bottom:0!important;background:#fff!important;';
+    buttons.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;padding:0 20px 20px;';
     
     const resetBtn = document.createElement('button');
-    resetBtn.textContent = '重設預設';
-    resetBtn.style.cssText = 'padding:10px 20px!important;border-radius:6px!important;border:1px solid #ddd!important;cursor:pointer!important;font-size:14px!important;background:#f5f5f5!important;color:#666!important;';
-    resetBtn.onmouseover = () => resetBtn.style.background = '#eee';
-    resetBtn.onmouseout = () => resetBtn.style.background = '#f5f5f5';
+    resetBtn.textContent = i18n.t('editor.reset');
+    resetBtn.style.cssText = 'padding:10px 20px;border-radius:6px;border:1px solid #ddd;cursor:pointer;font-size:14px;background:#f5f5f5;color:#666;';
     
     const saveBtn = document.createElement('button');
-    saveBtn.textContent = '儲存';
-    saveBtn.style.cssText = 'padding:10px 20px!important;border-radius:6px!important;border:none!important;cursor:pointer!important;font-size:14px!important;background:#4a9eff!important;color:#fff!important;';
-    saveBtn.onmouseover = () => saveBtn.style.background = '#3a8eef';
-    saveBtn.onmouseout = () => saveBtn.style.background = '#4a9eff';
+    saveBtn.textContent = i18n.t('editor.save');
+    saveBtn.style.cssText = 'padding:10px 20px;border-radius:6px;border:none;cursor:pointer;font-size:14px;background:#4a9eff;color:#fff;';
     
     buttons.appendChild(resetBtn);
     buttons.appendChild(saveBtn);
@@ -440,14 +429,13 @@ const QuickAction = {
     overlay.appendChild(editor);
     document.body.appendChild(overlay);
 
-    // Event handlers
     const close = () => overlay.remove();
     closeBtn.onclick = close;
     overlay.onclick = e => { if (e.target === overlay) close(); };
 
     resetBtn.onclick = () => {
       this.resetActions();
-      textarea.value = defaultActions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n');
+      textarea.value = editorDefaultActions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n');
     };
 
     saveBtn.onclick = () => {
@@ -470,13 +458,13 @@ const QuickAction = {
   }
 };
 
-// ========== Export Functions ==========
+// Export
 function exportChat(format) {
   const platform = Platform.detect();
-  if (!platform) return alert('不支援此平台');
+  if (!platform) return alert(i18n.t('alert.unsupported'));
 
   const messages = Extractor.getMessages(platform);
-  if (!messages.length) return alert('找不到對話內容');
+  if (!messages.length) return alert(i18n.t('alert.no_content'));
 
   const metadata = Extractor.getMetadata(platform);
   const baseName = Downloader.sanitize(metadata.title);
@@ -495,7 +483,7 @@ function exportChat(format) {
   Downloader.save(f.fn(messages, metadata, platform), `${baseName}_${ts}.${f.ext}`, f.mime);
 }
 
-// ========== UI ==========
+// UI
 function createUI() {
   const platform = Platform.detect();
 
@@ -526,7 +514,7 @@ function createUI() {
   path.setAttribute('d', 'M3 3h18v2H3V3zm0 16h18v2H3v-2zm0-8h18v2H3v-2z');
   svg.appendChild(path);
   btn.appendChild(svg);
-  btn.appendChild(document.createTextNode(' 快樂工具人聊天小幫手'));
+  btn.appendChild(document.createTextNode(' ' + i18n.t('menu.title')));
 
   const menu = document.createElement('div');
   menu.className = 'aitk-menu';
@@ -540,7 +528,7 @@ function createUI() {
   };
 
   // Export section
-  const exportSection = el('div', 'aitk-menu-section', '匯出對話');
+  const exportSection = el('div', 'aitk-menu-section', i18n.t('menu.export'));
   menu.appendChild(exportSection);
 
   const exportGrid = el('div', 'aitk-menu-grid');
@@ -562,7 +550,7 @@ function createUI() {
 
   menu.appendChild(el('hr'));
 
-  const actionSection = el('div', 'aitk-menu-section', '快捷指令');
+  const actionSection = el('div', 'aitk-menu-section', i18n.t('menu.actions'));
   menu.appendChild(actionSection);
 
   const actionGrid = el('div', 'aitk-menu-grid');
@@ -578,7 +566,7 @@ function createUI() {
   });
   menu.appendChild(actionGrid);
 
-  const editBtn = el('button', 'aitk-menu-edit', '⚙️ 編輯指令');
+  const editBtn = el('button', 'aitk-menu-edit', i18n.t('menu.edit'));
   editBtn.dataset.edit = 'true';
   menu.appendChild(editBtn);
   document.body.appendChild(btn);
@@ -611,7 +599,7 @@ function createUI() {
   });
 }
 
-// ========== Init ==========
+// Init
 function init() {
   if (!Platform.detect()) return;
   if (document.querySelector('.aitk-btn')) return; // 避免重複
