@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name        AI Chat Toolkit (Export + Quick Actions)
-// @name:zh-TW  AI 對話工具箱 (匯出 + 快捷指令)
-// @description Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
-// @description:zh-TW AI 對話匯出與快捷指令工具箱
-// @namespace   ai-chat-toolkit
-// @version     2025-01-06.001
-// @author      Enhanced by Claude
-// @icon        data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234a9eff"><path d="M3 3h18v2H3V3zm0 16h18v2H3v-2zm0-8h18v2H3v-2zm0 4h12v2H3v-2zm0-8h12v2H3V7z"/></svg>
+// @name        快樂工具人聊天小幫手
+// @name:en     Happy Toolman Chat Helper
+// @description AI 對話匯出與快捷指令工具箱
+// @description:en Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
+// @namespace   happy-toolman
+// @version     2025-01-06.007
+// @author      快樂工具人(Haoming Lu)
+// @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
 // @match       *://chat.openai.com/*
 // @match       *://grok.com/*
@@ -17,12 +17,16 @@
 // @run-at      document-idle
 // @grant       GM_addStyle
 // @grant       GM_registerMenuCommand
+// @grant       GM_setValue
+// @grant       GM_getValue
+// @updateURL   https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/ai-chat-toolkit.user.js
+// @downloadURL https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/ai-chat-toolkit.user.js
 // ==/UserScript==
 
 (function() {
 'use strict';
 
-const VERSION = '2025-01-06.001';
+const VERSION = '2025-01-06.003';
 
 // ========== Platform Detection ==========
 const Platform = {
@@ -284,7 +288,31 @@ const Downloader = {
 };
 
 // ========== Quick Actions ==========
+const defaultActions = [
+  { id: 'summary', icon: '📋', label: '摘要對話', prompt: '請用一句話摘要上面的對話紀錄' },
+  { id: 'continue', icon: '➡️', label: '繼續', prompt: '請繼續' },
+  { id: 'translate', icon: '🌐', label: '翻譯中文', prompt: '請將上面的回覆翻譯成繁體中文' },
+  { id: 'simplify', icon: '✂️', label: '精簡回答', prompt: '請用更簡短的方式重新回答' },
+  { id: 'explain', icon: '💡', label: '詳細解釋', prompt: '請更詳細地解釋上面的回答' }
+];
+
 const QuickAction = {
+  getActions() {
+    const saved = GM_getValue('customActions', null);
+    if (saved) {
+      try { return JSON.parse(saved); } catch(e) {}
+    }
+    return defaultActions;
+  },
+
+  saveActions(actions) {
+    GM_setValue('customActions', JSON.stringify(actions));
+  },
+
+  resetActions() {
+    GM_setValue('customActions', JSON.stringify(defaultActions));
+  },
+
   sendMessage(platform, text) {
     const sel = Platform.getSelectors(platform);
     if (!sel?.inputBox) return false;
@@ -303,25 +331,71 @@ const QuickAction = {
     }
 
     setTimeout(() => {
-      // 嘗試按 Enter 送出
-      const enterEvent = new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', code: 'Enter', keyCode: 13 });
-      box.dispatchEvent(enterEvent);
-      
-      // 備用：找送出按鈕
-      const sendBtn = document.querySelector('button[data-testid="send-button"], button[aria-label*="Send"], button[aria-label*="送出"]');
+      const sendBtn = document.querySelector(
+        'button[data-testid="send-button"], ' +
+        'button[aria-label*="Send"], ' +
+        'button[aria-label*="送出"], ' +
+        'button[aria-label*="Submit"], ' +
+        'button.send-button, ' +
+        'button[class*="send"], ' +
+        'button[class*="submit"]'
+      );
       if (sendBtn && !sendBtn.disabled) sendBtn.click();
-    }, 100);
+    }, 150);
 
     return true;
   },
 
-  actions: [
-    { id: 'summary', icon: '📋', label: '摘要對話', prompt: '請用一句話摘要上面的對話紀錄' },
-    { id: 'continue', icon: '➡️', label: '繼續', prompt: '請繼續' },
-    { id: 'translate', icon: '🌐', label: '翻譯中文', prompt: '請將上面的回覆翻譯成繁體中文' },
-    { id: 'simplify', icon: '✂️', label: '精簡回答', prompt: '請用更簡短的方式重新回答' },
-    { id: 'explain', icon: '💡', label: '詳細解釋', prompt: '請更詳細地解釋上面的回答' }
-  ]
+  showEditor() {
+    const actions = this.getActions();
+    const overlay = document.createElement('div');
+    overlay.className = 'aitk-overlay';
+    
+    const editor = document.createElement('div');
+    editor.className = 'aitk-editor';
+    editor.innerHTML = `
+      <div class="aitk-editor-header">
+        <span>編輯快捷指令</span>
+        <button class="aitk-editor-close">✕</button>
+      </div>
+      <div class="aitk-editor-hint">格式：icon | 名稱 | 指令內容（每行一個）</div>
+      <textarea class="aitk-editor-textarea">${actions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n')}</textarea>
+      <div class="aitk-editor-buttons">
+        <button class="aitk-editor-reset">重設預設</button>
+        <button class="aitk-editor-save">儲存</button>
+      </div>
+    `;
+
+    overlay.appendChild(editor);
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelector('.aitk-editor-close').onclick = close;
+    overlay.onclick = e => { if (e.target === overlay) close(); };
+
+    overlay.querySelector('.aitk-editor-reset').onclick = () => {
+      this.resetActions();
+      overlay.querySelector('.aitk-editor-textarea').value = defaultActions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n');
+    };
+
+    overlay.querySelector('.aitk-editor-save').onclick = () => {
+      const text = overlay.querySelector('.aitk-editor-textarea').value;
+      const lines = text.split('\n').filter(l => l.trim());
+      const newActions = lines.map((line, i) => {
+        const parts = line.split('|').map(p => p.trim());
+        return {
+          id: 'custom_' + i,
+          icon: parts[0] || '⚡',
+          label: parts[1] || '指令' + (i + 1),
+          prompt: parts[2] || ''
+        };
+      }).filter(a => a.prompt);
+      
+      this.saveActions(newActions);
+      close();
+      location.reload();
+    };
+  }
 };
 
 // ========== Export Functions ==========
@@ -354,35 +428,59 @@ function createUI() {
   const platform = Platform.detect();
 
   GM_addStyle(`
-    .aitk-btn{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:all .2s}
+    .aitk-btn{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:all .2s;color:#333}
     .aitk-btn:hover{background:#f0f0f0;box-shadow:0 3px 12px rgba(0,0,0,.15)}
-    .aitk-menu{position:fixed;top:45px;left:50%;transform:translateX(-50%);z-index:999999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);display:none;min-width:180px}
+    .aitk-btn svg{fill:#333}
+    .aitk-menu{position:fixed;top:45px;left:50%;transform:translateX(-50%);z-index:999999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);display:none;min-width:200px;color:#333}
     .aitk-menu.show{display:block}
-    .aitk-menu-section{padding:8px 12px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #eee}
-    .aitk-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;text-align:left;font-size:13px}
-    .aitk-menu button:hover{background:#f5f5f5}
+    .aitk-menu-section{padding:8px 12px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #eee;background:#fafafa}
+    .aitk-menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px}
+    .aitk-menu button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;border:none;background:#fff;cursor:pointer;font-size:11px;color:#333;border-radius:6px}
+    .aitk-menu button:hover{background:#f0f0f0}
+    .aitk-menu button .icon{font-size:18px}
     .aitk-menu hr{margin:0;border:none;border-top:1px solid #eee}
+    .aitk-menu-edit{display:block;width:100%;padding:8px;border:none;background:#f5f5f5;cursor:pointer;font-size:11px;color:#666;text-align:center}
+    .aitk-menu-edit:hover{background:#eee;color:#333}
+    .aitk-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999999;display:flex;align-items:center;justify-content:center}
+    .aitk-editor{background:#fff;border-radius:12px;width:90%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+    .aitk-editor-header{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #eee;font-weight:600;color:#333}
+    .aitk-editor-header button{background:none;border:none;font-size:18px;cursor:pointer;color:#999}
+    .aitk-editor-header button:hover{color:#333}
+    .aitk-editor-hint{padding:12px 16px 0;font-size:12px;color:#888}
+    .aitk-editor-textarea{width:calc(100% - 32px);margin:12px 16px;height:200px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit}
+    .aitk-editor-buttons{display:flex;justify-content:flex-end;gap:8px;padding:0 16px 16px}
+    .aitk-editor-buttons button{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px}
+    .aitk-editor-reset{background:#f5f5f5;color:#666}
+    .aitk-editor-reset:hover{background:#eee}
+    .aitk-editor-save{background:#4a9eff;color:#fff}
+    .aitk-editor-save:hover{background:#3a8eef}
   `);
 
   const btn = document.createElement('div');
   btn.className = 'aitk-btn';
-  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h18v2H3V3zm0 16h18v2H3v-2zm0-8h18v2H3v-2z"/></svg> 工具箱`;
+  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h18v2H3V3zm0 16h18v2H3v-2zm0-8h18v2H3v-2z"/></svg> 快樂工具人聊天小幫手`;
 
   const menu = document.createElement('div');
   menu.className = 'aitk-menu';
 
   // Export section
+  const actions = QuickAction.getActions();
   let menuHTML = `<div class="aitk-menu-section">匯出對話</div>
-    <button data-export="markdown">📝 Markdown</button>
-    <button data-export="json">📊 JSON</button>
-    <button data-export="html">🌐 HTML</button>
-    <button data-export="text">📄 Text</button>
-    <hr><div class="aitk-menu-section">快捷指令</div>`;
+    <div class="aitk-menu-grid">
+      <button data-export="markdown"><span class="icon">📝</span>MD</button>
+      <button data-export="json"><span class="icon">📊</span>JSON</button>
+      <button data-export="html"><span class="icon">🌐</span>HTML</button>
+      <button data-export="text"><span class="icon">📄</span>TXT</button>
+    </div>
+    <hr><div class="aitk-menu-section">快捷指令</div>
+    <div class="aitk-menu-grid">`;
 
   // Quick actions
-  QuickAction.actions.forEach(a => {
-    menuHTML += `<button data-action="${a.id}">${a.icon} ${a.label}</button>`;
+  actions.forEach(a => {
+    menuHTML += `<button data-action="${a.id}" data-prompt="${encodeURIComponent(a.prompt)}"><span class="icon">${a.icon}</span>${a.label}</button>`;
   });
+
+  menuHTML += `</div><button class="aitk-menu-edit" data-edit="true">⚙️ 編輯指令</button>`;
 
   menu.innerHTML = menuHTML;
   document.body.appendChild(btn);
@@ -396,12 +494,15 @@ function createUI() {
 
     const exportFmt = target.dataset.export;
     const actionId = target.dataset.action;
+    const isEdit = target.dataset.edit;
 
     if (exportFmt) {
       exportChat(exportFmt);
+    } else if (isEdit) {
+      QuickAction.showEditor();
     } else if (actionId) {
-      const action = QuickAction.actions.find(a => a.id === actionId);
-      if (action) QuickAction.sendMessage(platform, action.prompt);
+      const prompt = decodeURIComponent(target.dataset.prompt || '');
+      if (prompt) QuickAction.sendMessage(platform, prompt);
     }
 
     menu.classList.remove('show');
@@ -413,12 +514,19 @@ function createUI() {
 }
 
 // ========== Init ==========
-if (Platform.detect()) {
+function init() {
+  if (!Platform.detect()) return;
+  if (document.querySelector('.aitk-btn')) return; // 避免重複
   createUI();
   GM_registerMenuCommand('Export Markdown', () => exportChat('markdown'));
   GM_registerMenuCommand('Export JSON', () => exportChat('json'));
   GM_registerMenuCommand('Export HTML', () => exportChat('html'));
   GM_registerMenuCommand('Export Text', () => exportChat('text'));
 }
+
+// 立即嘗試 + 延遲重試（給 Gemini 這種慢載入的）
+init();
+setTimeout(init, 1000);
+setTimeout(init, 3000);
 
 })();
