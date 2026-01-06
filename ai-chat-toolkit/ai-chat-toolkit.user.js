@@ -4,7 +4,7 @@
 // @description AI 對話匯出與快捷指令工具箱
 // @description:en Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
 // @namespace   happy-toolman
-// @version     2025-01-06.031
+// @version     2025-01-06.033
 // @author      快樂工具人(Haoming Lu)
 // @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
@@ -29,7 +29,7 @@
 (function() {
 'use strict';
 
-const VERSION = '2025-01-06.031';
+const VERSION = '2025-01-06.033';
 
 // Trusted Types Policy
 let trustedPolicy = null;
@@ -490,10 +490,14 @@ function createUI() {
   const platform = Platform.detect();
 
   GM_addStyle(`
-    .aitk-btn{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:all .2s;color:#333}
-    .aitk-btn:hover{background:#f0f0f0;box-shadow:0 3px 12px rgba(0,0,0,.15)}
-    .aitk-btn svg{fill:#333}
-    .aitk-menu{position:fixed;top:45px;left:50%;transform:translateX(-50%);z-index:999999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);display:none;min-width:200px;color:#333}
+    .aitk-btn{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:20px;background:rgba(255,255,255,0.95);border:1px solid #ddd;cursor:pointer;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:all .3s cubic-bezier(0.4,0,0.2,1);color:#333;backdrop-filter:blur(10px)}
+    .aitk-btn:hover{background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.15)}
+    .aitk-btn.mini{padding:6px;gap:0}
+    .aitk-btn.mini .aitk-btn-text{max-width:0;opacity:0;margin:0}
+    .aitk-btn svg{fill:#333;flex-shrink:0;transition:transform .3s}
+    .aitk-btn.mini svg{transform:scale(0.9)}
+    .aitk-btn-text{max-width:200px;opacity:1;overflow:hidden;transition:all .3s cubic-bezier(0.4,0,0.2,1);white-space:nowrap;margin-left:4px}
+    .aitk-menu{position:fixed;top:55px;left:50%;transform:translateX(-50%);z-index:999999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);display:none;min-width:200px;color:#333}
     .aitk-menu.show{display:block}
     .aitk-menu-section{padding:8px 12px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #eee;background:#fafafa}
     .aitk-menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px}
@@ -516,7 +520,10 @@ function createUI() {
   path.setAttribute('d', 'M3 3h18v2H3V3zm0 16h18v2H3v-2zm0-8h18v2H3v-2z');
   svg.appendChild(path);
   btn.appendChild(svg);
-  btn.appendChild(document.createTextNode(' ' + i18n.t('menu.title')));
+  const btnText = document.createElement('span');
+  btnText.className = 'aitk-btn-text';
+  btnText.textContent = i18n.t('menu.title');
+  btn.appendChild(btnText);
 
   const menu = document.createElement('div');
   menu.className = 'aitk-menu';
@@ -574,7 +581,23 @@ function createUI() {
   document.body.appendChild(btn);
   document.body.appendChild(menu);
 
-  btn.onclick = () => menu.classList.toggle('show');
+  // 載入儲存的縮放狀態
+  const isMini = GM_getValue('btnMini', false);
+  if (isMini) btn.classList.add('mini');
+
+  // 單擊按鈕：切換選單
+  btn.onclick = (e) => {
+    // 如果點擊的是 SVG 或其子元素，切換大小
+    if (e.target.closest('svg')) {
+      e.stopPropagation();
+      btn.classList.toggle('mini');
+      GM_setValue('btnMini', btn.classList.contains('mini'));
+      menu.classList.remove('show');
+      return;
+    }
+    // 點擊其他地方，切換選單
+    menu.classList.toggle('show');
+  };
 
   menu.onclick = e => {
     const target = e.target.closest('button');
