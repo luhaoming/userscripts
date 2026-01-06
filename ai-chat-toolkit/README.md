@@ -110,25 +110,25 @@ AI Chat Toolkit 是一個強大的瀏覽器腳本，讓你輕鬆管理與 AI 對
 
 ### 主選單
 
-![主選單](https://raw.githubusercontent.com/luhaoming/userscripts/main/screenshots/main-menu.png)
+![主選單](https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/screenshots/main-menu.png)
 
 > 點擊按鈕後展開的選單，包含匯出和快捷指令
 
 ### 匯出格式選擇
 
-![匯出選項](https://raw.githubusercontent.com/luhaoming/userscripts/main/screenshots/export-options.png)
+![匯出選項](https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/screenshots/export-options.png)
 
 > 四種格式可供選擇
 
 ### 快捷指令編輯器
 
-![編輯器](https://raw.githubusercontent.com/luhaoming/userscripts/main/screenshots/editor.png)
+![編輯器](https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/screenshots/editor.png)
 
 > 自訂你的快捷指令
 
 ### Markdown 匯出範例
 
-![Markdown 範例](https://raw.githubusercontent.com/luhaoming/userscripts/main/screenshots/markdown-output.png)
+![Markdown 範例](https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/screenshots/markdown-output.png)
 
 > 匯出的 Markdown 檔案，保留完整格式
 
