@@ -4,7 +4,7 @@
 // @description AI 對話匯出與快捷指令工具箱
 // @description:en Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
 // @namespace   happy-toolman
-// @version     2025-01-06.033
+// @version     2025-01-06.035
 // @author      快樂工具人(Haoming Lu)
 // @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
@@ -29,7 +29,7 @@
 (function() {
 'use strict';
 
-const VERSION = '2025-01-06.033';
+const VERSION = '2025-01-06.035';
 
 // Trusted Types Policy
 let trustedPolicy = null;
@@ -58,15 +58,41 @@ const i18n = {
   lang: null,
   detect() {
     if (this.lang) return this.lang;
-    this.lang = (navigator.language || navigator.userLanguage).startsWith('zh') ? 'zh' : 'en';
+    
+    // 1. 優先使用手動設定
+    const manualLang = GM_getValue('manualLang', null);
+    if (manualLang) {
+      this.lang = manualLang;
+      return this.lang;
+    }
+    
+    // 2. 自動偵測
+    const browserLang = navigator.language || navigator.userLanguage || '';
+    console.log('[AI Chat Toolkit] Browser language:', browserLang);
+    
+    // 偵測所有中文變體
+    if (browserLang.match(/^zh/i) || browserLang.match(/chinese/i)) {
+      this.lang = 'zh';
+    } else {
+      this.lang = 'en';
+    }
+    
+    console.log('[AI Chat Toolkit] Detected language:', this.lang);
     return this.lang;
   },
+  setLang(lang) {
+    GM_setValue('manualLang', lang);
+    this.lang = lang;
+    location.reload();
+  },
   t(key) {
+    const lang = this.detect(); // 確保語言已偵測
     const texts = {
       'menu.title': { zh: '快樂工具人聊天小幫手', en: 'AI Chat Toolkit' },
       'menu.export': { zh: '匯出對話', en: 'Export Chat' },
       'menu.actions': { zh: '快捷指令', en: 'Quick Actions' },
       'menu.edit': { zh: '⚙️ 編輯指令', en: '⚙️ Edit Actions' },
+      'menu.lang': { zh: '🌐 語言', en: '🌐 Language' },
       'editor.title': { zh: '編輯快捷指令', en: 'Edit Quick Actions' },
       'editor.hint': { zh: '格式：icon | 名稱 | 指令內容（每行一個）', en: 'Format: icon | name | prompt (one per line)' },
       'editor.reset': { zh: '重設預設', en: 'Reset' },
@@ -86,7 +112,7 @@ const i18n = {
       'alert.unsupported': { zh: '不支援此平台', en: 'Platform not supported' },
       'alert.no_content': { zh: '找不到對話內容', en: 'No conversation found' }
     };
-    return texts[key]?.[this.lang] || key;
+    return texts[key]?.[lang] || key;
   }
 };
 
@@ -499,7 +525,7 @@ function createUI() {
     .aitk-btn-text{max-width:200px;opacity:1;overflow:hidden;transition:all .3s cubic-bezier(0.4,0,0.2,1);white-space:nowrap;margin-left:4px}
     .aitk-menu{position:fixed;top:55px;left:50%;transform:translateX(-50%);z-index:999999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);display:none;min-width:200px;color:#333}
     .aitk-menu.show{display:block}
-    .aitk-menu-section{padding:8px 12px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #eee;background:#fafafa}
+    .aitk-menu-section{padding:8px 12px;font-size:11px;color:#666;letter-spacing:.5px;border-bottom:1px solid #eee;background:#fafafa;font-weight:600}
     .aitk-menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px}
     .aitk-menu button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;border:none;background:#fff;cursor:pointer;font-size:11px;color:#333;border-radius:6px}
     .aitk-menu button:hover{background:#f0f0f0}
@@ -575,6 +601,12 @@ function createUI() {
   });
   menu.appendChild(actionGrid);
 
+  // 語言切換按鈕
+  const currentLang = i18n.detect();
+  const langBtn = el('button', 'aitk-menu-edit', i18n.t('menu.lang') + ': ' + (currentLang === 'zh' ? '繁中' : 'EN'));
+  langBtn.dataset.lang = 'true';
+  menu.appendChild(langBtn);
+
   const editBtn = el('button', 'aitk-menu-edit', i18n.t('menu.edit'));
   editBtn.dataset.edit = 'true';
   menu.appendChild(editBtn);
@@ -606,9 +638,14 @@ function createUI() {
     const exportFmt = target.dataset.export;
     const actionId = target.dataset.action;
     const isEdit = target.dataset.edit;
+    const isLang = target.dataset.lang;
 
     if (exportFmt) {
       exportChat(exportFmt);
+    } else if (isLang) {
+      // 切換語言
+      const newLang = i18n.lang === 'zh' ? 'en' : 'zh';
+      i18n.setLang(newLang);
     } else if (isEdit) {
       QuickAction.showEditor();
     } else if (actionId) {
