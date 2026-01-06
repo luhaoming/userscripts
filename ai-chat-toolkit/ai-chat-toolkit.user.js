@@ -4,7 +4,7 @@
 // @description AI 對話匯出與快捷指令工具箱
 // @description:en Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
 // @namespace   happy-toolman
-// @version     2025-01-06.030
+// @version     2025-01-06.031
 // @author      快樂工具人(Haoming Lu)
 // @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
@@ -15,6 +15,8 @@
 // @noframes
 // @sandbox     raw
 // @license     MIT
+// @homepage    https://greasyfork.org/zh-TW/scripts/561579
+// @supportURL  https://greasyfork.org/zh-TW/scripts/561579/feedback
 // @run-at      document-idle
 // @grant       GM_addStyle
 // @grant       GM_registerMenuCommand
@@ -27,7 +29,7 @@
 (function() {
 'use strict';
 
-const VERSION = '2025-01-06.030';
+const VERSION = '2025-01-06.031';
 
 // Trusted Types Policy
 let trustedPolicy = null;

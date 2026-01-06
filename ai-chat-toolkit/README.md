@@ -39,7 +39,7 @@ AI Chat Toolkit 是一個強大的瀏覽器腳本，讓你輕鬆管理與 AI 對
    - [Greasemonkey](https://www.greasespot.net/)
 
 2. **安裝腳本**
-   - 點擊 [安裝此腳本](https://greasyfork.org/scripts/YOUR_SCRIPT_ID)
+   - 點擊 [安裝此腳本](https://greasyfork.org/scripts/561579)
    - 或前往 [GitHub](https://github.com/luhaoming/userscripts) 手動安裝
 
 3. **開始使用**
@@ -264,7 +264,7 @@ icon | 標籤 | 提示詞內容
 
 回報方式：
 - [GitHub Issues](https://github.com/luhaoming/userscripts/issues)
-- [Greasyfork 回饋區](https://greasyfork.org/scripts/YOUR_SCRIPT_ID/feedback)
+- [Greasyfork 回饋區](https://greasyfork.org/scripts/561579/feedback)
 
 ---
 
@@ -284,7 +284,11 @@ icon | 標籤 | 提示詞內容
 
 ## 📝 版本歷史
 
-### v2025-01-06.030 (最新)
+### v2025-01-06.031 (最新)
+- 🔗 加入 Greasyfork 官方連結
+- 📝 更新文檔和安裝說明
+
+### v2025-01-06.030
 - ✨ 新增多語言支援（繁中/英文）
 - ⚡ 優化程式碼，減少 10% 體積
 - 🎨 改善編輯器 UI
@@ -338,7 +342,7 @@ MIT License © 2025 快樂工具人 (Haoming Lu)
 
 如果這個工具對你有幫助：
 
-1. 在 [Greasyfork](https://greasyfork.org/scripts/YOUR_SCRIPT_ID) 給個好評 ⭐
+1. 在 [Greasyfork](https://greasyfork.org/scripts/561579) 給個好評 ⭐
 2. 在 [GitHub](https://github.com/luhaoming/userscripts) 點個 Star ⭐
 3. 分享給朋友 📢
 
