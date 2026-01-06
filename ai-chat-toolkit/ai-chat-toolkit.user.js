@@ -4,7 +4,7 @@
 // @description AI 對話匯出與快捷指令工具箱
 // @description:en Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
 // @namespace   happy-toolman
-// @version     2025-01-06.007
+// @version     2025-01-06.011
 // @author      快樂工具人(Haoming Lu)
 // @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
@@ -13,6 +13,7 @@
 // @match       *://gemini.google.com/*
 // @match       *://claude.ai/*
 // @noframes
+// @sandbox     raw
 // @license     MIT
 // @run-at      document-idle
 // @grant       GM_addStyle
@@ -26,7 +27,29 @@
 (function() {
 'use strict';
 
-const VERSION = '2025-01-06.003';
+const VERSION = '2025-01-06.011';
+
+// ========== Trusted Types Policy (for Gemini) ==========
+let trustedPolicy = null;
+if (typeof trustedTypes !== 'undefined' && trustedTypes.createPolicy) {
+  try {
+    trustedPolicy = trustedTypes.createPolicy('aitk', {
+      createHTML: s => s,
+      createScriptURL: s => s,
+      createScript: s => s
+    });
+  } catch (e) {
+    // Policy already exists or not supported
+  }
+}
+
+const safeParseHTML = (html) => {
+  const parser = new DOMParser();
+  if (trustedPolicy) {
+    return parser.parseFromString(trustedPolicy.createHTML(html), 'text/html');
+  }
+  return parser.parseFromString(html, 'text/html');
+};
 
 // ========== Platform Detection ==========
 const Platform = {
@@ -94,7 +117,7 @@ const Platform = {
 // ========== HTML to Markdown Converter ==========
 const Converter = {
   toMarkdown(html, platform) {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const doc = safeParseHTML(html);
     
     doc.querySelectorAll('span.katex-html, mrow').forEach(el => el.remove());
     
@@ -111,7 +134,7 @@ const Converter = {
         const codeEl = pre.querySelector(sel.codeContent);
         const lang = langEl?.textContent?.trim().toLowerCase() || '';
         const code = codeEl?.textContent || pre.textContent;
-        pre.innerHTML = `\n\`\`\`${lang}\n${code}\n\`\`\`\n`;
+        pre.textContent = `\n\`\`\`${lang}\n${code}\n\`\`\`\n`;
       });
     }
 
@@ -348,38 +371,87 @@ const QuickAction = {
 
   showEditor() {
     const actions = this.getActions();
+    const defaultActions = [
+      { icon: '📋', label: '摘要對話', prompt: '請用一句話摘要上面的對話紀錄' },
+      { icon: '✏️', label: '編輯', prompt: '請編輯' },
+      { icon: '🌐', label: '翻譯中文', prompt: '請將上面的回覆翻譯成繁體中文' },
+      { icon: '✂️', label: '精簡回答', prompt: '請用更簡短的方式重新回答' },
+      { icon: '💡', label: '詳細解釋', prompt: '請更詳細地解釋上面的回答' }
+    ];
+
+    // Overlay with !important to override any platform styles
     const overlay = document.createElement('div');
-    overlay.className = 'aitk-overlay';
+    overlay.style.cssText = 'position:fixed!important;inset:0!important;background:rgba(0,0,0,0.6)!important;z-index:999999999!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:20px!important;box-sizing:border-box!important;';
     
+    // Editor container
     const editor = document.createElement('div');
-    editor.className = 'aitk-editor';
-    editor.innerHTML = `
-      <div class="aitk-editor-header">
-        <span>編輯快捷指令</span>
-        <button class="aitk-editor-close">✕</button>
-      </div>
-      <div class="aitk-editor-hint">格式：icon | 名稱 | 指令內容（每行一個）</div>
-      <textarea class="aitk-editor-textarea">${actions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n')}</textarea>
-      <div class="aitk-editor-buttons">
-        <button class="aitk-editor-reset">重設預設</button>
-        <button class="aitk-editor-save">儲存</button>
-      </div>
-    `;
+    editor.style.cssText = 'background:#fff!important;border-radius:12px!important;width:100%!important;max-width:600px!important;max-height:80vh!important;overflow:auto!important;box-shadow:0 8px 32px rgba(0,0,0,0.3)!important;position:relative!important;';
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex!important;justify-content:space-between!important;align-items:center!important;padding:20px!important;border-bottom:1px solid #eee!important;font-weight:600!important;font-size:16px!important;position:sticky!important;top:0!important;background:#fff!important;z-index:1!important;color:#333!important;';
+    
+    const headerTitle = document.createElement('span');
+    headerTitle.textContent = '編輯快捷指令';
+    headerTitle.style.cssText = 'color:#333!important;';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'background:none!important;border:none!important;font-size:24px!important;cursor:pointer!important;color:#999!important;padding:0!important;width:30px!important;height:30px!important;line-height:1!important;';
+    closeBtn.onmouseover = () => closeBtn.style.color = '#333';
+    closeBtn.onmouseout = () => closeBtn.style.color = '#999';
+    
+    header.appendChild(headerTitle);
+    header.appendChild(closeBtn);
+    editor.appendChild(header);
+
+    // Hint
+    const hint = document.createElement('div');
+    hint.style.cssText = 'padding:16px 20px!important;font-size:13px!important;color:#666!important;background:#f8f9fa!important;';
+    hint.textContent = '格式：icon | 名稱 | 指令內容（每行一個）';
+    editor.appendChild(hint);
+
+    // Textarea
+    const textarea = document.createElement('textarea');
+    textarea.style.cssText = 'display:block!important;width:calc(100% - 40px)!important;margin:16px 20px!important;min-height:300px!important;border:1px solid #ddd!important;border-radius:8px!important;padding:12px!important;font-size:14px!important;resize:vertical!important;font-family:monospace!important;line-height:1.6!important;color:#333!important;background:#fff!important;box-sizing:border-box!important;';
+    textarea.value = actions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n');
+    editor.appendChild(textarea);
+
+    // Buttons
+    const buttons = document.createElement('div');
+    buttons.style.cssText = 'display:flex!important;justify-content:flex-end!important;gap:10px!important;padding:0 20px 20px!important;position:sticky!important;bottom:0!important;background:#fff!important;';
+    
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = '重設預設';
+    resetBtn.style.cssText = 'padding:10px 20px!important;border-radius:6px!important;border:1px solid #ddd!important;cursor:pointer!important;font-size:14px!important;background:#f5f5f5!important;color:#666!important;';
+    resetBtn.onmouseover = () => resetBtn.style.background = '#eee';
+    resetBtn.onmouseout = () => resetBtn.style.background = '#f5f5f5';
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = '儲存';
+    saveBtn.style.cssText = 'padding:10px 20px!important;border-radius:6px!important;border:none!important;cursor:pointer!important;font-size:14px!important;background:#4a9eff!important;color:#fff!important;';
+    saveBtn.onmouseover = () => saveBtn.style.background = '#3a8eef';
+    saveBtn.onmouseout = () => saveBtn.style.background = '#4a9eff';
+    
+    buttons.appendChild(resetBtn);
+    buttons.appendChild(saveBtn);
+    editor.appendChild(buttons);
 
     overlay.appendChild(editor);
     document.body.appendChild(overlay);
 
+    // Event handlers
     const close = () => overlay.remove();
-    overlay.querySelector('.aitk-editor-close').onclick = close;
+    closeBtn.onclick = close;
     overlay.onclick = e => { if (e.target === overlay) close(); };
 
-    overlay.querySelector('.aitk-editor-reset').onclick = () => {
+    resetBtn.onclick = () => {
       this.resetActions();
-      overlay.querySelector('.aitk-editor-textarea').value = defaultActions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n');
+      textarea.value = defaultActions.map(a => `${a.icon} | ${a.label} | ${a.prompt}`).join('\n');
     };
 
-    overlay.querySelector('.aitk-editor-save').onclick = () => {
-      const text = overlay.querySelector('.aitk-editor-textarea').value;
+    saveBtn.onclick = () => {
+      const text = textarea.value;
       const lines = text.split('\n').filter(l => l.trim());
       const newActions = lines.map((line, i) => {
         const parts = line.split('|').map(p => p.trim());
@@ -441,48 +513,74 @@ function createUI() {
     .aitk-menu hr{margin:0;border:none;border-top:1px solid #eee}
     .aitk-menu-edit{display:block;width:100%;padding:8px;border:none;background:#f5f5f5;cursor:pointer;font-size:11px;color:#666;text-align:center}
     .aitk-menu-edit:hover{background:#eee;color:#333}
-    .aitk-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999999;display:flex;align-items:center;justify-content:center}
-    .aitk-editor{background:#fff;border-radius:12px;width:90%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
-    .aitk-editor-header{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #eee;font-weight:600;color:#333}
-    .aitk-editor-header button{background:none;border:none;font-size:18px;cursor:pointer;color:#999}
-    .aitk-editor-header button:hover{color:#333}
-    .aitk-editor-hint{padding:12px 16px 0;font-size:12px;color:#888}
-    .aitk-editor-textarea{width:calc(100% - 32px);margin:12px 16px;height:200px;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:13px;resize:vertical;font-family:inherit}
-    .aitk-editor-buttons{display:flex;justify-content:flex-end;gap:8px;padding:0 16px 16px}
-    .aitk-editor-buttons button{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px}
-    .aitk-editor-reset{background:#f5f5f5;color:#666}
-    .aitk-editor-reset:hover{background:#eee}
-    .aitk-editor-save{background:#4a9eff;color:#fff}
-    .aitk-editor-save:hover{background:#3a8eef}
   `);
 
   const btn = document.createElement('div');
   btn.className = 'aitk-btn';
-  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h18v2H3V3zm0 16h18v2H3v-2zm0-8h18v2H3v-2z"/></svg> 快樂工具人聊天小幫手`;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'currentColor');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M3 3h18v2H3V3zm0 16h18v2H3v-2zm0-8h18v2H3v-2z');
+  svg.appendChild(path);
+  btn.appendChild(svg);
+  btn.appendChild(document.createTextNode(' 快樂工具人聊天小幫手'));
 
   const menu = document.createElement('div');
   menu.className = 'aitk-menu';
 
+  // Helper function to create elements
+  const el = (tag, className, text) => {
+    const e = document.createElement(tag);
+    if (className) e.className = className;
+    if (text) e.textContent = text;
+    return e;
+  };
+
   // Export section
-  const actions = QuickAction.getActions();
-  let menuHTML = `<div class="aitk-menu-section">匯出對話</div>
-    <div class="aitk-menu-grid">
-      <button data-export="markdown"><span class="icon">📝</span>MD</button>
-      <button data-export="json"><span class="icon">📊</span>JSON</button>
-      <button data-export="html"><span class="icon">🌐</span>HTML</button>
-      <button data-export="text"><span class="icon">📄</span>TXT</button>
-    </div>
-    <hr><div class="aitk-menu-section">快捷指令</div>
-    <div class="aitk-menu-grid">`;
+  const exportSection = el('div', 'aitk-menu-section', '匯出對話');
+  menu.appendChild(exportSection);
 
-  // Quick actions
-  actions.forEach(a => {
-    menuHTML += `<button data-action="${a.id}" data-prompt="${encodeURIComponent(a.prompt)}"><span class="icon">${a.icon}</span>${a.label}</button>`;
+  const exportGrid = el('div', 'aitk-menu-grid');
+  const exports = [
+    { fmt: 'markdown', icon: '📝', label: 'MD' },
+    { fmt: 'json', icon: '📊', label: 'JSON' },
+    { fmt: 'html', icon: '🌐', label: 'HTML' },
+    { fmt: 'text', icon: '📄', label: 'TXT' }
+  ];
+  exports.forEach(ex => {
+    const b = el('button');
+    b.dataset.export = ex.fmt;
+    const iconSpan = el('span', 'icon', ex.icon);
+    b.appendChild(iconSpan);
+    b.appendChild(document.createTextNode(ex.label));
+    exportGrid.appendChild(b);
   });
+  menu.appendChild(exportGrid);
 
-  menuHTML += `</div><button class="aitk-menu-edit" data-edit="true">⚙️ 編輯指令</button>`;
+  menu.appendChild(el('hr'));
 
-  menu.innerHTML = menuHTML;
+  const actionSection = el('div', 'aitk-menu-section', '快捷指令');
+  menu.appendChild(actionSection);
+
+  const actionGrid = el('div', 'aitk-menu-grid');
+  const actions = QuickAction.getActions();
+  actions.forEach(a => {
+    const b = el('button');
+    b.dataset.action = a.id;
+    b.dataset.prompt = encodeURIComponent(a.prompt);
+    const iconSpan = el('span', 'icon', a.icon);
+    b.appendChild(iconSpan);
+    b.appendChild(document.createTextNode(a.label));
+    actionGrid.appendChild(b);
+  });
+  menu.appendChild(actionGrid);
+
+  const editBtn = el('button', 'aitk-menu-edit', '⚙️ 編輯指令');
+  editBtn.dataset.edit = 'true';
+  menu.appendChild(editBtn);
   document.body.appendChild(btn);
   document.body.appendChild(menu);
 
