@@ -4,7 +4,7 @@
 // @description 支援將 ChatGPT/Gemini/Grok/Claude 對話匯出至 MD/JSON/HTML，並內建快捷指令工具箱。
 // @description:en Export ChatGPT/Gemini/Grok/Claude chats to MD/JSON/HTML and use quick prompt templates.
 // @namespace   happy-toolman
-// @version     2025-01-06.035
+// @version     2026-01-07.002
 // @author      快樂工具人 (Haoming Lu)
 // @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
@@ -29,7 +29,7 @@
 (function() {
 'use strict';
 
-const VERSION = '2025-01-06.035';
+const VERSION = '2026-01-07.002';
 
 // Trusted Types Policy
 let trustedPolicy = null;

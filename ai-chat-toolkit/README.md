@@ -3,7 +3,7 @@
 > 🚀 一鍵匯出 AI 對話記錄 + 快捷指令工具箱
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2025--01--06.030-blue.svg)](https://github.com/luhaoming/userscripts)
+[![Version](https://img.shields.io/badge/version-2025--01--07.002-blue.svg)](https://github.com/luhaoming/userscripts)
 
 ## 📖 簡介
 
