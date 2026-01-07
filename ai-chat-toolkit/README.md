@@ -1,4 +1,4 @@
-# AI Chat Toolkit / 快樂工具人聊天小幫手
+# 快樂工具人：AI 對話匯出與快速範本 (GPT/Gemini/Grok/Claude)
 
 > 🚀 一鍵匯出 AI 對話記錄 + 快捷指令工具箱
 

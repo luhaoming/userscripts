@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name        ChatGPT/Gemini/Grok/Claude匯出對話與快速範本
-// @name:en     ChatGPT/Gemini/Grok/Claude Export and FastTemplate
-// @description AI 對話匯出與快捷指令工具箱
-// @description:en Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
+// @name        快樂工具人：AI 對話匯出與快速範本 (GPT/Gemini/Grok/Claude)
+// @name:en     AI Chat Exporter & Quick Templates (by Haoming)
+// @description 支援將 ChatGPT/Gemini/Grok/Claude 對話匯出至 MD/JSON/HTML，並內建快捷指令工具箱。
+// @description:en Export ChatGPT/Gemini/Grok/Claude chats to MD/JSON/HTML and use quick prompt templates.
 // @namespace   happy-toolman
-// @version     2026-01-07.001
-// @author      快樂工具人(Haoming Lu)
+// @version     2025-01-06.035
+// @author      快樂工具人 (Haoming Lu)
 // @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
 // @match       *://chat.openai.com/*
