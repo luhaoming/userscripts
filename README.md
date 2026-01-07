@@ -7,7 +7,7 @@
 | 腳本名稱 | 直白的功能描述 | 安裝連結 |
 | :--- | :--- | :--- |
 | **快樂工具人聊天小幫手** | AI 聊天介面增強工具，讓對話更順手。 | [安裝](https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/ai-chat-toolkit.user.js) |
-| *(待命)* | *下一個解決問題的工具還在路面上...* | - |
+| **正式區防呆小幫手** | 醒目顯示目前環境，正式區刪除操作強制確認，防止手賤。 | [安裝](https://raw.githubusercontent.com/luhaoming/userscripts/main/prod-guard/prod-guard.user.js) |
 
 ---
 
