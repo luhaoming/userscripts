@@ -1,10 +1,10 @@
 // ==UserScript==
-// @name        快樂工具人聊天小幫手
-// @name:en     AI Chat Toolkit
+// @name        ChatGPT/Gemini/Grok/Claude匯出對話與快速範本
+// @name:en     ChatGPT/Gemini/Grok/Claude Export and FastTemplate
 // @description AI 對話匯出與快捷指令工具箱
 // @description:en Export chat to MD/JSON/HTML/TXT + quick actions for ChatGPT/Gemini/Grok/Claude
 // @namespace   happy-toolman
-// @version     2025-01-06.035
+// @version     2026-01-07.001
 // @author      快樂工具人(Haoming Lu)
 // @icon        https://raw.githubusercontent.com/luhaoming/userscripts/main/assets/logo.png
 // @match       *://chatgpt.com/*
