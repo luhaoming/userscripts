@@ -8,6 +8,7 @@
 | :--- | :--- | :--- |
 | **快樂工具人聊天小幫手** | AI 聊天介面增強工具，讓對話更順手。 | [安裝](https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/ai-chat-toolkit.user.js) |
 | **正式區防呆小幫手** | 醒目顯示目前環境，正式區刪除操作強制確認，防止手賤。 | [安裝](https://raw.githubusercontent.com/luhaoming/userscripts/main/prod-guard/prod-guard.user.js) |
+| **HackMD 筆記快速搜尋** | 實現 HackMD 筆記的秒級全文檢索，支援增量同步與智慧管理。 | [安裝](https://raw.githubusercontent.com/luhaoming/userscripts/main/hackmd-search/hackmd-search.user.js) |
 
 ---
 
