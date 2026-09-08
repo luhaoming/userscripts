@@ -2,6 +2,8 @@
 
 ChatGPT、Gemini 的對話時間軸、Markdown／HTML 匯出與快速追問工具。
 
+<img src="screenshots/menu.png" alt="浮動選單" width="300">
+
 ## 功能
 
 - 只支援 **ChatGPT**、**Gemini**。
