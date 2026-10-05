@@ -3,7 +3,8 @@
 > 在 ChatGPT 與 Gemini 提供對話時間軸、Markdown／HTML 匯出與可自訂的快速追問。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2026--09--08.002-blue.svg)](ai-chat-toolkit.user.js)
+[![Version](https://img.shields.io/badge/version-2026--10--05.001-blue.svg)](ai-chat-toolkit.user.js)
+[![Greasy Fork](https://img.shields.io/badge/Greasy%20Fork-561579-red.svg)](https://greasyfork.org/zh-TW/scripts/561579-%E5%BF%AB%E6%A8%82%E5%B7%A5%E5%85%B7%E4%BA%BA-ai-%E5%B0%8D%E8%A9%B1%E5%B0%8F%E5%B9%AB%E6%89%8B-gpt-gemini)
 
 ## 功能
 
@@ -24,7 +25,9 @@
 ## 安裝
 
 1. 安裝 [Tampermonkey](https://www.tampermonkey.net/) 或 [Violentmonkey](https://violentmonkey.github.io/)。
-2. 點擊 [安裝此腳本](https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/ai-chat-toolkit.user.js)。
+2. 選擇以下任一方式安裝腳本：
+   - **[GreasyFork 安裝頁面](https://greasyfork.org/zh-TW/scripts/561579-%E5%BF%AB%E6%A8%82%E5%B7%A5%E5%85%B7%E4%BA%BA-ai-%E5%B0%8D%E8%A9%B1%E5%B0%8F%E5%B9%AB%E6%89%8B-gpt-gemini)**（推薦，享有管理器自動更新與版本管理）
+   - **[GitHub 直連安裝](https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/ai-chat-toolkit.user.js)**
 3. 開啟 ChatGPT 或 Gemini 對話頁面，右下角會出現快樂工具人圖示。
 
 若使用新版 Chrome + Tampermonkey，請到擴充功能設定確認 Tampermonkey 已啟用「允許使用者指令碼」。
@@ -94,6 +97,12 @@ ChatGPT 與 Gemini 的頁面結構可能隨官方更新而改變。腳本已為 
 平台通常會延遲載入很長的對話。先將對話捲到需要保留的部分，再執行匯出。
 
 ## 版本紀錄
+
+### 2026-10-05（v2026-10-05.001）
+
+- 變更：按鈕改用微笑表情符號（😄），移除外部圖片以完全相容各平台 CSP。
+- 變更：移除 `@updateURL` 與 `@downloadURL`，由腳本管理器依來源自動管理更新。
+- 文件：新增 GreasyFork 相關安裝說明與徽章。
 
 ### 2026-09-08（v2026-09-08.002）
 

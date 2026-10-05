@@ -2,7 +2,7 @@
 // @name         快樂工具人：AI 對話小幫手 (GPT/Gemini)
 // @description  ChatGPT、Gemini 對話時間軸、Markdown/HTML 匯出與快速追問。
 // @namespace    happy-toolman
-// @version      2026-09-08.002
+// @version      2026-10-05.001
 // @author       快樂工具人 (Haoming Lu)
 // @match        *://chatgpt.com/*
 // @match        *://chat.openai.com/*
@@ -14,15 +14,12 @@
 // @grant         GM_getValue
 // @grant         GM_registerMenuCommand
 // @grant         GM_setValue
-// @updateURL     https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/ai-chat-toolkit.user.js
-// @downloadURL   https://raw.githubusercontent.com/luhaoming/userscripts/main/ai-chat-toolkit/ai-chat-toolkit.user.js
 // ==/UserScript==
 
 (() => {
 'use strict';
 
-const VERSION = '2026-09-08.002';
-const LOGO_URL = 'https://buy.sirii.cf/favicon.ico';
+const VERSION = '2026-10-05.001';
 const DEFAULT_ACTIONS = [
   { icon: '💡', label: '詳細說明', prompt: '請更詳細地解釋上面的回答。' },
   { icon: '🔍', label: '白話解釋', prompt: '請用白話、容易理解的方式解釋上面的回答。' },
@@ -229,18 +226,17 @@ function initialPosition(fab) {
 function createUi() {
   document.querySelector('#aitk-timeline')?.remove();
   GM_addStyle(`
-#aitk-fab{position:fixed;z-index:2147483646;font:14px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif}#aitk-fab button{border:0;cursor:pointer;font:inherit}#aitk-main{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#fff;color:#2563eb;box-shadow:0 5px 18px #0004;touch-action:none;overflow:hidden}#aitk-main img{width:28px;height:28px;pointer-events:none}#aitk-menu{position:absolute;right:0;bottom:56px;width:240px;padding:8px;border:1px solid #d1d5db;border-radius:14px;background:#fff;color:#1f2937;box-shadow:0 10px 30px #0003;display:none}#aitk-fab.aitk-open #aitk-menu{display:block}.aitk-brand{display:flex;align-items:center;gap:8px;padding:5px 7px 9px;font-weight:700}.aitk-brand img{width:22px;height:22px;border-radius:5px}.aitk-title{font-size:11px;color:#6b7280;padding:7px 8px 4px}.aitk-item{display:flex;width:100%;padding:9px;border-radius:8px;background:transparent;color:inherit;text-align:left}.aitk-item:hover{background:#eef2ff}.aitk-rule{border:0;border-top:1px solid #e5e7eb;margin:6px 0}.aitk-version{font-size:11px;color:#6b7280;padding:7px 8px 3px}#aitk-timeline{position:fixed;right:22px;bottom:82px;z-index:2147483645;width:270px;max-height:min(65vh,620px);padding:8px;border:1px solid #d1d5db;border-radius:14px;background:#fff;color:#1f2937;box-shadow:0 10px 30px #0003;display:none;overflow:auto;font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif}#aitk-timeline.aitk-show{display:grid;gap:3px}#aitk-timeline button{display:grid;grid-template-columns:26px 1fr;gap:7px;border:0;border-radius:8px;padding:8px;background:transparent;color:inherit;text-align:left;cursor:pointer}#aitk-timeline button:hover{background:#eef2ff}#aitk-timeline b{color:#2563eb}#aitk-timeline span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.aitk-editor-overlay{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:20px;background:#0008;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}.aitk-editor{width:min(620px,100%);padding:20px;border-radius:14px;background:#fff;color:#1f2937;box-shadow:0 15px 40px #0005}.aitk-editor h2{margin:0}.aitk-editor p{margin:4px 0 12px;color:#6b7280}.aitk-editor textarea{width:100%;min-height:220px;padding:10px;border:1px solid #d1d5db;border-radius:8px;font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical}.aitk-editor-buttons{display:flex;gap:8px;margin-top:12px}.aitk-editor-buttons span{flex:1}.aitk-editor button{border:0;border-radius:7px;padding:8px 11px;cursor:pointer}.aitk-editor .aitk-primary{background:#2563eb;color:#fff}@media(prefers-color-scheme:dark){#aitk-menu,#aitk-timeline,.aitk-editor{background:#262626;color:#eee;border-color:#525252}.aitk-title,.aitk-version,.aitk-editor p{color:#a3a3a3}.aitk-item:hover,#aitk-timeline button:hover{background:#303c57}.aitk-rule{border-color:#525252}.aitk-editor textarea{background:#171717;color:#eee;border-color:#525252}}
+#aitk-fab{position:fixed;z-index:2147483646;font:14px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif}#aitk-fab button{border:0;cursor:pointer;font:inherit}#aitk-main{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#fff;font-size:24px;box-shadow:0 5px 18px #0004;touch-action:none;user-select:none}#aitk-menu{position:absolute;right:0;bottom:56px;width:240px;padding:8px;border:1px solid #d1d5db;border-radius:14px;background:#fff;color:#1f2937;box-shadow:0 10px 30px #0003;display:none}#aitk-fab.aitk-open #aitk-menu{display:block}.aitk-brand{display:flex;align-items:center;gap:8px;padding:5px 7px 9px;font-weight:700}.aitk-brand span:first-child{font-size:18px}.aitk-title{font-size:11px;color:#6b7280;padding:7px 8px 4px}.aitk-item{display:flex;width:100%;padding:9px;border-radius:8px;background:transparent;color:inherit;text-align:left}.aitk-item:hover{background:#eef2ff}.aitk-rule{border:0;border-top:1px solid #e5e7eb;margin:6px 0}.aitk-version{font-size:11px;color:#6b7280;padding:7px 8px 3px}#aitk-timeline{position:fixed;right:22px;bottom:82px;z-index:2147483645;width:270px;max-height:min(65vh,620px);padding:8px;border:1px solid #d1d5db;border-radius:14px;background:#fff;color:#1f2937;box-shadow:0 10px 30px #0003;display:none;overflow:auto;font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif}#aitk-timeline.aitk-show{display:grid;gap:3px}#aitk-timeline button{display:grid;grid-template-columns:26px 1fr;gap:7px;border:0;border-radius:8px;padding:8px;background:transparent;color:inherit;text-align:left;cursor:pointer}#aitk-timeline button:hover{background:#eef2ff}#aitk-timeline b{color:#2563eb}#aitk-timeline span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.aitk-editor-overlay{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:20px;background:#0008;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}.aitk-editor{width:min(620px,100%);padding:20px;border-radius:14px;background:#fff;color:#1f2937;box-shadow:0 15px 40px #0005}.aitk-editor h2{margin:0}.aitk-editor p{margin:4px 0 12px;color:#6b7280}.aitk-editor textarea{width:100%;min-height:220px;padding:10px;border:1px solid #d1d5db;border-radius:8px;font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical}.aitk-editor-buttons{display:flex;gap:8px;margin-top:12px}.aitk-editor-buttons span{flex:1}.aitk-editor button{border:0;border-radius:7px;padding:8px 11px;cursor:pointer}.aitk-editor .aitk-primary{background:#2563eb;color:#fff}@media(prefers-color-scheme:dark){#aitk-menu,#aitk-timeline,.aitk-editor{background:#262626;color:#eee;border-color:#525252}.aitk-title,.aitk-version,.aitk-editor p{color:#a3a3a3}.aitk-item:hover,#aitk-timeline button:hover{background:#303c57}.aitk-rule{border-color:#525252}.aitk-editor textarea{background:#171717;color:#eee;border-color:#525252}}
 `);
   const fab = document.createElement('div');
   fab.id = 'aitk-fab';
   const actions = getActions();
-  fab.innerHTML = `<button id="aitk-main" title="${t('brand')}"><img src="${LOGO_URL}" alt="快樂工具人"></button><div id="aitk-menu"><div class="aitk-brand"><img src="${LOGO_URL}" alt=""><span>${t('brand')}</span></div><div class="aitk-title">${t('export')}</div><button class="aitk-item" data-do="md">📝 ${t('markdown')}</button><button class="aitk-item" data-do="html">🌐 ${t('html')}</button><hr class="aitk-rule"><div class="aitk-title">${t('actions')}</div>${actions.map((item, i) => `<button class="aitk-item" data-action="${i}">${item.icon || '⚡'} ${escapeHtml(item.label)}</button>`).join('')}<button class="aitk-item" data-do="edit">⚙️ ${t('edit')}</button><hr class="aitk-rule"><button class="aitk-item" data-do="timeline">↕ ${t('timelineHide')}</button><button class="aitk-item" data-do="language">🌐 ${t('language')}</button><div class="aitk-version">${t('version')} v${VERSION}</div></div>`;
+  fab.innerHTML = `<button id="aitk-main" title="${t('brand')}">😄</button><div id="aitk-menu"><div class="aitk-brand"><span>😄</span><span>${t('brand')}</span></div><div class="aitk-title">${t('export')}</div><button class="aitk-item" data-do="md">📝 ${t('markdown')}</button><button class="aitk-item" data-do="html">🌐 ${t('html')}</button><hr class="aitk-rule"><div class="aitk-title">${t('actions')}</div>${actions.map((item, i) => `<button class="aitk-item" data-action="${i}">${item.icon || '⚡'} ${escapeHtml(item.label)}</button>`).join('')}<button class="aitk-item" data-do="edit">⚙️ ${t('edit')}</button><hr class="aitk-rule"><button class="aitk-item" data-do="timeline">↕ ${t('timelineHide')}</button><button class="aitk-item" data-do="language">🌐 ${t('language')}</button><div class="aitk-version">${t('version')} v${VERSION}</div></div>`;
   timeline = document.createElement('div');
   timeline.id = 'aitk-timeline';
   timeline.classList.add('aitk-show');
   document.body.append(fab, timeline);
   initialPosition(fab);
-  fab.querySelectorAll('img').forEach(image => { image.onerror = () => { image.style.display = 'none'; }; });
   const main = fab.querySelector('#aitk-main');
   let dragStart;
   let didDrag = false;
